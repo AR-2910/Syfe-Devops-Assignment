@@ -1,0 +1,60 @@
+# Images
+image:
+  wordpress: ar2910/wordpress-custom:latest
+  mysql: ar2910/mysql-custom:latest
+  nginx: ar2910/openresty-custom:latest
+
+# WordPress configuration
+wordpress:
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+
+# MySQL configuration
+mysql:
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+  secret:
+    username: wpuser
+    password: wppass
+
+# Nginx configuration
+nginx:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+
+# Service configuration
+service:
+  nginx:
+    type: NodePort
+    nodePort: 31171
+    port: 80
+
+# Persistence configuration
+persistence:
+  wp:
+    enabled: true
+    size: 1Gi
+    accessMode: ReadWriteMany
+    storageClass: nfs-client
+  mysql:
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    storageClass: standard
+

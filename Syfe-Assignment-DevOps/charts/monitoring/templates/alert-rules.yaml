@@ -1,0 +1,28 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nginx-wordpress-alerts
+  labels:
+    release: prometheus
+spec:
+  groups:
+  - name: nginx-alerts
+    rules:
+    - alert: HighPodCPUUsage
+      expr: sum(rate(container_cpu_usage_seconds_total{container!="",pod!=""}[2m])) by (pod) > 0.2
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High CPU usage detected on pod {{ $labels.pod }}"
+        description: "Pod {{ $labels.pod }} is using high CPU (>0.2 cores) for more than 2 minutes."
+
+    - alert: NginxHigh5xxErrors
+      expr: rate(nginx_http_requests_total{status=~"5.."}[2m]) > 0
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "NGINX 5xx Errors Detected"
+        description: "Pod {{ $labels.pod }} serving 5xx errors in last 2 minutes."
+

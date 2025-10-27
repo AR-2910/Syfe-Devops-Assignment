@@ -1,0 +1,14 @@
+version: '3'
+services:
+  db:
+    image: ar2910/mysql-custom:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+  wp:
+    image: ar2910/wordpress-custom:latest
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+    environment:
+      WORDPRESS_DB_HOST: db:3306

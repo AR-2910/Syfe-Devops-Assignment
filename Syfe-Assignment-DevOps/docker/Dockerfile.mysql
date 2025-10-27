@@ -1,0 +1,7 @@
+FROM mysql:8.0
+ENV MYSQL_DATABASE=wordpress
+ENV MYSQL_USER=wpuser
+ENV MYSQL_PASSWORD=wppass
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD ["mysqladmin", "ping", "-h", "localhost"]
+VOLUME /var/lib/mysql
+CMD ["mysqld", "--bind-address=0.0.0.0"]

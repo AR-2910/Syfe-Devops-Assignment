@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9113"
+    spec:
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - name: wait-for-wordpress
+        image: busybox
+        command:
+          - sh
+          - -c
+          - |
+            # wait for DNS resolution and port 80 to be open
+            set -e
+            for i in $(seq 1 30); do
+              nslookup wordpress-svc.default.svc.cluster.local >/dev/null 2>&1 && \
+              nc -z wordpress-svc 80 >/dev/null 2>&1 && echo ok && exit 0 || true
+              echo "waiting for wordpress-svc..."
+              sleep 2
+            done
+            echo "wordpress-svc not ready" >&2
+            exit 1
+
+      containers:
+      - name: nginx
+        image: ar2910/openresty-custom:latest
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /opt/openresty/nginx/conf/nginx.conf
+          subPath: nginx.conf
+        readinessProbe:
+          httpGet:
+            path: /stub_status
+            port: 80
+          initialDelaySeconds: 8
+          timeoutSeconds: 3
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 5
+        livenessProbe:
+          httpGet:
+            path: /stub_status
+            port: 80
+          initialDelaySeconds: 20
+          timeoutSeconds: 3
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 5
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+
+      - name: nginx-exporter
+        image: nginx/nginx-prometheus-exporter:1.2.0
+        args:
+        - --nginx.scrape-uri=http://127.0.0.1:80/stub_status
+        ports:
+        - containerPort: 9113
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+
